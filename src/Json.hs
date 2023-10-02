@@ -295,7 +295,7 @@ sign =
 
 -- Parse zero or more whitespace characters
 ws :: Parser ()
-ws = void $ many (match $ flip elem ['\x0020', '\x000A', '\x000D', '\x0009'])
+ws = void $ many $ match (`elem` ['\x0020', '\x000A', '\x000D', '\x0009'])
 
 -- Parse JSON true
 jsTrue :: Parser JsonValue
