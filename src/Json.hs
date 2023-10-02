@@ -102,6 +102,12 @@ oneOf parsers = foldr1 (<|>) parsers
 pconcat :: (Monoid a) => [Parser a] -> Parser a
 pconcat parsers = mconcat <$> sequence parsers
 
+-- | Lifts cons operator (:) into the world of parsers.
+(|:) :: Parser a -> Parser [a] -> Parser [a]
+(|:) = liftA2 (:)
+
+infixr 5 |:
+
 {- | JSON PARSERS
 
 In this section I have tried to define parsers that maps direcly to the grammar
@@ -230,10 +236,10 @@ jsNumber = JsNum . read <$> pconcat [integer, fraction, exponent]
 integer :: Parser String
 integer =
     oneOf
-        [ pconcat [str "-", onenine, digits]
-        , pconcat [str "-", digit]
-        , pconcat [onenine, digits]
-        , pconcat [digit]
+        [ char '-' |: onenine |: digits
+        , char '-' |: digit |: pure []
+        , onenine |: digits
+        , digit |: pure []
         ]
 
 -- Parse the fraction part of a JSON number. The fraction can be bank.
@@ -254,16 +260,16 @@ exponent =
         ]
 
 -- Parse one digit 0 .. 9
-digit :: Parser String -- todo change to char
-digit = str "0" <|> onenine
+digit :: Parser Char
+digit = char '0' <|> onenine
 
 -- Parse one or more digits
 digits :: Parser String
-digits = mconcat <$> some digit
+digits = some digit
 
 -- Parse one digit 1..9
-onenine :: Parser String -- todo change to char
-onenine = singleton <$> match (\c -> '1' <= c && c <= '9')
+onenine :: Parser Char
+onenine = match (\c -> '1' <= c && c <= '9')
 
 -- Parse optional sign
 sign :: Parser String
