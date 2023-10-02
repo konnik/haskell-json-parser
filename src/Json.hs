@@ -136,12 +136,15 @@ sepBy elemP sepP =
 found on https://www.json.org/json-en.html
 -}
 
-{- | Parse a JsonValue. This is the top level parser that can parse all
+{- | Parse a JSON value. This is the top level parser that can parse all
 the different JSON values.
 -}
 json :: Parser JsonValue
 json = element
 
+{- | Parse a JSON value. This parser does not trim whitespaces so it will fail if the
+value is surrounded by whitespace.
+-}
 value :: Parser JsonValue
 value =
     oneOf
