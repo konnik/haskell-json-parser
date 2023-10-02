@@ -3,9 +3,10 @@ module Json (parse, JsonValue (..)) where
 import Control.Applicative (Alternative (..))
 import Control.Monad (guard, void)
 import Data.Char (chr, isHexDigit)
+import Data.Foldable1 (foldl1')
 import Data.Functor (($>))
 import Data.List (singleton, uncons)
-import Data.Map (Map)
+import Data.Map (Map, foldl')
 import Data.Map qualified as M (empty, fromList)
 import Data.Tuple (swap)
 import Prelude hiding (exponent)
@@ -59,6 +60,9 @@ match predicate = do
     guard (predicate c)
     pure c
 
+oneOf :: [Parser a] -> Parser a
+oneOf = foldr1 (<|>)
+
 str :: String -> Parser String
 str [] = pure []
 str (x : xs) = do
@@ -74,13 +78,17 @@ jsObject = JsObj <$> object
 
 object :: Parser (Map String JsonValue)
 object =
-    (M.empty <$ (ch '{' >> ws >> ch '}'))
-        <|> (M.fromList <$> (ch '{' *> members <* ch '}'))
+    oneOf
+        [ M.empty <$ (ch '{' >> ws >> ch '}')
+        , M.fromList <$> (ch '{' *> members <* ch '}')
+        ]
 
 members :: Parser [(String, JsonValue)]
 members =
-    ((:) <$> member <*> (ch ',' *> members))
-        <|> (singleton <$> member)
+    oneOf
+        [ (:) <$> member <*> (ch ',' *> members) -- todo sepBy
+        , singleton <$> member
+        ]
 
 member :: Parser (String, JsonValue)
 member =
@@ -91,13 +99,17 @@ jsArray = JsArray <$> array
 
 array :: Parser [JsonValue]
 array =
-    ((ch '[' >> ws >> ch ']') $> [])
-        <|> (ch '[' *> elements <* ch ']')
+    oneOf
+        [ (ch '[' >> ws >> ch ']') $> []
+        , ch '[' *> elements <* ch ']'
+        ]
 
 elements :: Parser [JsonValue]
 elements =
-    ((:) <$> element <*> (ch ',' *> elements))
-        <|> (singleton <$> element)
+    oneOf
+        [ (:) <$> element <*> (ch ',' *> elements)
+        , singleton <$> element
+        ]
 
 element :: Parser JsonValue
 element =
@@ -108,25 +120,31 @@ string = str "\"" *> characters <* str "\""
 
 characters :: Parser String
 characters =
-    strOf [character, characters]
-        <|> pure ""
+    oneOf
+        [ strOf [character, characters]
+        , pure ""
+        ]
 
-character :: Parser String
+character :: Parser String -- todo change type to Char
 character =
-    (singleton <$> match (\c -> c /= '"' && c /= '\\'))
-        <|> (match (== '\\') *> escape)
+    oneOf
+        [ singleton <$> match (\c -> c /= '"' && c /= '\\')
+        , match (== '\\') *> escape
+        ]
 
 escape :: Parser String
 escape =
-    (ch '"' $> "\"")
-        <|> (ch '\\' $> "\\")
-        <|> (ch '/' $> "/")
-        <|> (ch 'b' $> "\b")
-        <|> (ch 'f' $> "\f")
-        <|> (ch 'n' $> "\n")
-        <|> (ch 'r' $> "\r")
-        <|> (ch 't' $> "\t")
-        <|> (ch 'u' *> (singleton . hexStringToChar <$> strOf [hex, hex, hex, hex]))
+    oneOf
+        [ ch '"' $> "\""
+        , ch '\\' $> "\\"
+        , ch '/' $> "/"
+        , ch 'b' $> "\b"
+        , ch 'f' $> "\f"
+        , ch 'n' $> "\n"
+        , ch 'r' $> "\r"
+        , ch 't' $> "\t"
+        , ch 'u' *> (singleton . hexStringToChar <$> strOf [hex, hex, hex, hex])
+        ]
 
 hex :: Parser String
 hex = singleton <$> match isHexDigit
@@ -136,12 +154,14 @@ hexStringToChar hexStr = chr $ read ("0x" ++ hexStr)
 
 value :: Parser JsonValue
 value =
-    jsBool
-        <|> jsNull
-        <|> jsNumber
-        <|> jsString
-        <|> jsArray
-        <|> jsObject
+    oneOf
+        [ jsBool
+        , jsNull
+        , jsNumber
+        , jsString
+        , jsArray
+        , jsObject
+        ]
 
 jsBool :: Parser JsonValue
 jsBool = true <|> false
@@ -166,21 +186,27 @@ strOf parsers = concat <$> sequence parsers
 
 integer :: Parser String
 integer =
-    strOf [str "-", onenine, digits]
-        <|> strOf [str "-", digit]
-        <|> strOf [onenine, digits]
-        <|> strOf [digit]
+    oneOf
+        [ strOf [str "-", onenine, digits]
+        , strOf [str "-", digit]
+        , strOf [onenine, digits]
+        , strOf [digit]
+        ]
 
 fraction :: Parser String
 fraction =
-    strOf [str ".", digits]
-        <|> pure ""
+    oneOf
+        [ strOf [str ".", digits]
+        , pure ""
+        ]
 
 exponent :: Parser String
 exponent =
-    strOf [str "E", sign, digits]
-        <|> strOf [str "e", sign, digits]
-        <|> pure ""
+    oneOf
+        [ strOf [str "E", sign, digits]
+        , strOf [str "e", sign, digits]
+        , pure ""
+        ]
 
 digit :: Parser String
 digit = str "0" <|> onenine
@@ -195,7 +221,12 @@ onenine = do
     pure [c]
 
 sign :: Parser String
-sign = str "+" <|> str "-" <|> pure ""
+sign =
+    oneOf
+        [ str "+"
+        , str "-"
+        , pure ""
+        ]
 
 ws :: Parser String
 ws = many (match $ flip elem ['\x0020', '\x000A', '\x000D', '\x0009'])
