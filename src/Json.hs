@@ -51,7 +51,6 @@ combine parsers applicative style. Cool stuff!
 -}
 instance Applicative Parser where
     pure val = Parser $ \input -> pure (input, val)
-
     pab <*> pa = Parser $ \input -> do
         (input', f) <- runParser pab input
         (input'', a) <- runParser pa input'
@@ -127,7 +126,7 @@ infixr 5 |:
 sepBy :: Parser a -> Parser b -> Parser [a]
 sepBy elemP sepP =
     oneOf
-        [ (:) <$> elemP <*> many (sepP *> elemP)
+        [ elemP |: many (sepP *> elemP)
         , singleton <$> elemP
         ]
 
@@ -172,8 +171,7 @@ members = member `sepBy` char ','
   by a colon (:).
 -}
 member :: Parser (String, JsonValue)
-member =
-    (,) <$> (ws *> string <* ws <* char ':') <*> element
+member = liftA2 (,) (ws *> string <* ws <* char ':') element
 
 -- |  Parse a JSON array
 jsArray :: Parser JsonValue
@@ -207,8 +205,8 @@ string = char '"' *> characters <* char '"'
 characters :: Parser String
 characters =
     oneOf
-        [ liftA2 (:) character characters
-        , pure ""
+        [ character |: characters
+        , mempty
         ]
 
 {- |  Parse one character inside a JSON string and
@@ -262,7 +260,7 @@ fraction :: Parser String
 fraction =
     oneOf
         [ mconcat [str ".", digits]
-        , pure ""
+        , mempty
         ]
 
 -- Parse the exponent part of a JSON number. The exponent can be bank.
@@ -271,7 +269,7 @@ exponent =
     oneOf
         [ mconcat [str "E", sign, digits]
         , mconcat [str "e", sign, digits]
-        , pure ""
+        , mempty
         ]
 
 -- Parse one digit 0 .. 9
