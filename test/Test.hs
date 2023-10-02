@@ -82,6 +82,7 @@ testArrays =
     testGroup
         "Arrays"
         [ testParse "[]" []
+        , testParse "[null,null,null]" [JsNull, JsNull, JsNull]
         , testParse
             "[\"hello\", false, true, null, 3.1415, [42]]"
             [JsStr "hello", JsBool False, JsBool True, JsNull, JsNum 3.1415, JsArray [JsNum 42]]
@@ -97,6 +98,7 @@ testObjects =
         , testParse "{  \t}" M.empty
         , testParse "{\"one\": false}" $ M.fromList [("one", JsBool False)]
         , testParse "{\"one\": false, \"two\": 42}" $ M.fromList [("one", JsBool False), ("two", JsNum 42.0)]
+        , testParse "{\"one\": false, \"two\": 42, \"three\": null}" $ M.fromList [("one", JsBool False), ("two", JsNum 42.0), ("three", JsNull)]
         , testParse "{\"str\": \"a string\"}" $ M.fromList [("str", JsStr "a string")]
         , testParse "{\"arr\": [null, 42]}" $ M.fromList [("arr", JsArray [JsNull, JsNum 42.0])]
         , testParse "{\"obj\": {\"inner\":42}}" $ M.fromList [("obj", JsObj (M.fromList [("inner", JsNum 42.0)]))]

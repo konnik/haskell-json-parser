@@ -108,6 +108,14 @@ pconcat parsers = mconcat <$> sequence parsers
 
 infixr 5 |:
 
+-- | Parse a list of one or more values separated by another parser.
+sepBy :: Parser a -> Parser b -> Parser [a]
+sepBy elemP sepP =
+    oneOf
+        [ (:) <$> elemP <*> many (sepP *> elemP)
+        , singleton <$> elemP
+        ]
+
 {- | JSON PARSERS
 
 In this section I have tried to define parsers that maps direcly to the grammar
@@ -141,13 +149,9 @@ jsObject =
             , M.fromList <$> (char '{' *> members <* char '}')
             ]
 
--- |  Parse zero or more key-value pairs separated by a comma (,).
+-- |  Parse one or more key-value pairs separated by a comma (,).
 members :: Parser [(String, JsonValue)]
-members =
-    oneOf
-        [ (:) <$> member <*> (char ',' *> members) -- todo sepBy
-        , singleton <$> member
-        ]
+members = member `sepBy` char ','
 
 {- |  Parse a single key-value pair where the key and the value is separated
   by a colon (:).
@@ -167,11 +171,7 @@ jsArray =
 
 -- |  Parse one or more array elements separated by a comma (,).
 elements :: Parser [JsonValue]
-elements =
-    oneOf
-        [ (:) <$> element <*> (char ',' *> elements) -- todo sepBy
-        , singleton <$> element
-        ]
+elements = element `sepBy` char ','
 
 {- |  Parse an 'element', that is a JSON value that can be surrounded
  by whitespaces.
