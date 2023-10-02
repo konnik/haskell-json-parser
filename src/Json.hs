@@ -186,41 +186,41 @@ string = char '"' *> characters <* char '"'
 characters :: Parser String
 characters =
     oneOf
-        [ pconcat [character, characters]
+        [ liftA2 (:) character characters
         , pure ""
         ]
 
 {- |  Parse one character inside a JSON string and
 handle escaped characters correctly.
 -}
-character :: Parser String -- todo change type to Char
+character :: Parser Char
 character =
     oneOf
-        [ singleton <$> match (\c -> c /= '"' && c /= '\\')
+        [ match (\c -> c /= '"' && c /= '\\')
         , match (== '\\') *> escape
         ]
 
 -- | Parse one escaped character.
-escape :: Parser String -- todo change type to char
+escape :: Parser Char
 escape =
     oneOf
-        [ char '"' $> "\""
-        , char '\\' $> "\\"
-        , char '/' $> "/"
-        , char 'b' $> "\b"
-        , char 'f' $> "\f"
-        , char 'n' $> "\n"
-        , char 'r' $> "\r"
-        , char 't' $> "\t"
-        , char 'u' *> (singleton . hexStringToChar <$> pconcat [hex, hex, hex, hex])
+        [ char '"' $> '"'
+        , char '\\' $> '\\'
+        , char '/' $> '/'
+        , char 'b' $> '\b'
+        , char 'f' $> '\f'
+        , char 'n' $> '\n'
+        , char 'r' $> '\r'
+        , char 't' $> '\t'
+        , char 'u' *> (hexToChar <$> sequence [hex, hex, hex, hex])
         ]
   where
-    hexStringToChar :: String -> Char
-    hexStringToChar hexStr = chr $ read ("0x" ++ hexStr)
+    hexToChar :: String -> Char
+    hexToChar hexStr = chr $ read ('0' : 'x' : hexStr)
 
 -- Parse one hex digit.
-hex :: Parser String
-hex = singleton <$> match isHexDigit
+hex :: Parser Char
+hex = match isHexDigit
 
 -- Parse a JSON number
 jsNumber :: Parser JsonValue
