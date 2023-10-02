@@ -6,12 +6,12 @@ module Json (parse, JsonValue (..)) where
 import Control.Applicative (Alternative (..))
 import Control.Monad (guard, void)
 import Data.Char (chr, isHexDigit)
-import Data.Functor (($>))
+import Data.Functor (($>), (<&>))
 import Data.List (singleton, uncons)
 import Data.Map (Map)
 import Data.Map qualified as M (empty, fromList)
 import Data.Tuple (swap)
-import Prelude hiding (exponent)
+import Prelude hiding (exponent, null)
 
 -- * Public API
 
@@ -145,23 +145,22 @@ json = element
 value :: Parser JsonValue
 value =
     oneOf
-        [ jsObject
-        , jsArray
-        , jsString
-        , jsNumber
-        , jsTrue
-        , jsFalse
-        , jsNull
+        [ object <&> JsObj
+        , array <&> JsArray
+        , string <&> JsStr
+        , number <&> JsNum
+        , true <&> JsBool
+        , false <&> JsBool
+        , null $> JsNull
         ]
 
 -- |  Parse a JSON object
-jsObject :: Parser JsonValue
-jsObject =
-    JsObj
-        <$> oneOf
-            [ M.empty <$ (char '{' >> ws >> char '}')
-            , M.fromList <$> (char '{' *> members <* char '}')
-            ]
+object :: Parser (Map String JsonValue)
+object =
+    oneOf
+        [ M.empty <$ (char '{' >> ws >> char '}')
+        , M.fromList <$> (char '{' *> members <* char '}')
+        ]
 
 -- |  Parse one or more key-value pairs separated by a comma (,).
 members :: Parser [(String, JsonValue)]
@@ -174,13 +173,12 @@ member :: Parser (String, JsonValue)
 member = liftA2 (,) (ws *> string <* ws <* char ':') element
 
 -- |  Parse a JSON array
-jsArray :: Parser JsonValue
-jsArray =
-    JsArray
-        <$> oneOf
-            [ (char '[' >> ws >> char ']') $> []
-            , char '[' *> elements <* char ']'
-            ]
+array :: Parser [JsonValue]
+array =
+    oneOf
+        [ (char '[' >> ws >> char ']') $> []
+        , char '[' *> elements <* char ']'
+        ]
 
 -- |  Parse one or more array elements separated by a comma (,).
 elements :: Parser [JsonValue]
@@ -193,11 +191,7 @@ element :: Parser JsonValue
 element =
     ws *> value <* ws
 
--- | Parse a JSON string as a JsonValue
-jsString :: Parser JsonValue
-jsString = JsStr <$> string
-
--- | Parse a JSON string as a Haskell String.
+-- | Parse a JSON string
 string :: Parser String
 string = char '"' *> characters <* char '"'
 
@@ -242,8 +236,8 @@ hex :: Parser Char
 hex = match isHexDigit
 
 -- Parse a JSON number
-jsNumber :: Parser JsonValue
-jsNumber = JsNum . read <$> mconcat [integer, fraction, exponent]
+number :: Parser Double
+number = read <$> mconcat [integer, fraction, exponent]
 
 -- Parse the integer part of a JSON number.
 integer :: Parser String
@@ -298,13 +292,13 @@ ws :: Parser ()
 ws = void $ many $ match (`elem` ['\x0020', '\x000A', '\x000D', '\x0009'])
 
 -- Parse JSON true
-jsTrue :: Parser JsonValue
-jsTrue = str "true" $> JsBool True
+true :: Parser Bool
+true = str "true" $> True
 
 -- Parse JSON false
-jsFalse :: Parser JsonValue
-jsFalse = str "false" $> JsBool False
+false :: Parser Bool
+false = str "false" $> False
 
 -- Parse JSON null
-jsNull :: Parser JsonValue
-jsNull = str "null" $> JsNull
+null :: Parser ()
+null = str "null" $> ()
