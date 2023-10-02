@@ -1,7 +1,10 @@
+{- | This module contains an very simple implementation of a
+JSON parser.
+-}
 module Json (parse, JsonValue (..)) where
 
 import Control.Applicative (Alternative (..))
-import Control.Monad (guard)
+import Control.Monad (guard, void)
 import Data.Char (chr, isHexDigit)
 import Data.Functor (($>))
 import Data.List (singleton, uncons)
@@ -10,9 +13,9 @@ import Data.Map qualified as M (empty, fromList)
 import Data.Tuple (swap)
 import Prelude hiding (exponent)
 
--- |  PUBLIC API
+-- * Public API
 
--- | ADT representing a parsed JSON value
+-- | ADT representing a parsed JSON value.
 data JsonValue
     = JsBool Bool
     | JsNull
@@ -28,7 +31,7 @@ parse input = case runParser json input of
     Just ("", val) -> pure val -- succeed if there was no parse errors and all input was consumed
     _ -> fail "Parse error."
 
--- |  IMPLEMENTATION
+-- * Parser implementation
 
 {- | This is the main parser type used for this JSON parser.
 
@@ -37,7 +40,7 @@ the remaining input or Nothing if the parse fails.
 -}
 newtype Parser a = Parser {runParser :: String -> Maybe (String, a)}
 
--- |  INSTANCES
+-- *  Instances
 
 -- | Lets make our parser a Functor so we can map it to other values.§
 instance Functor Parser where
@@ -70,7 +73,9 @@ instance Alternative Parser where
     empty = Parser $ const Nothing
     p1 <|> p2 = Parser $ \input -> runParser p1 input <|> runParser p2 input
 
--- |  SIMPLE PARSERS
+-- *  Basic parsers
+
+-- | Definitions of some simple parsers that can be combined into more advanced ones.
 
 -- |  Just get the next character from de input. Will fail if the input is empty.
 next :: Parser Char
@@ -87,15 +92,19 @@ match predicate = do
     guard (predicate c)
     pure c
 
--- | Parse an exact string.
+-- | Parse an exact character sequence.
 str :: String -> Parser String
 str = mapM char
 
--- | PARSER COMBINATORS
+-- * Parser combinators
 
--- |  Tries the parsers one by one and return the first one that succeeds.
+-- |  Defines combinators that can be used to build more avanced parsers.
+
+{- |  Tries a list of parsers one by one and returns the value with the
+first one that succeeds.
+-}
 oneOf :: [Parser a] -> Parser a
-oneOf [] = empty
+oneOf [] = empty -- no parsers always fail
 oneOf parsers = foldr1 (<|>) parsers
 
 -- | Parse a sequence of monoid values and combine them into one result.
@@ -116,10 +125,10 @@ sepBy elemP sepP =
         , singleton <$> elemP
         ]
 
-{- | JSON PARSERS
+-- * JSON Parsers
 
-In this section I have tried to define parsers that maps direcly to the grammar
-https://www.json.org/json-en.html
+{- | In this section I have tried to define parsers that maps direcly to the grammar
+found on https://www.json.org/json-en.html
 -}
 
 {- | Parse a JsonValue. This is the top level parser that can parse all
@@ -281,8 +290,8 @@ sign =
         ]
 
 -- Parse zero or more whitespace characters
-ws :: Parser String -- todo change to ()
-ws = many (match $ flip elem ['\x0020', '\x000A', '\x000D', '\x0009'])
+ws :: Parser ()
+ws = void $ many (match $ flip elem ['\x0020', '\x000A', '\x000D', '\x0009'])
 
 -- Parse JSON true
 jsTrue :: Parser JsonValue
