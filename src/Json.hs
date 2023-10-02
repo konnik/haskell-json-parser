@@ -73,6 +73,16 @@ instance Alternative Parser where
     empty = Parser $ const Nothing
     p1 <|> p2 = Parser $ \input -> runParser p1 input <|> runParser p2 input
 
+{- | I think it will be very useful to be able to
+combine the values of two parser so let's define Semigroup.
+-}
+instance (Semigroup a) => Semigroup (Parser a) where
+    (<>) = liftA2 (<>)
+
+-- | And why not go all the way to Monoid too...
+instance (Monoid a) => Monoid (Parser a) where
+    mempty = pure mempty
+
 -- *  Basic parsers
 
 -- | Definitions of some simple parsers that can be combined into more advanced ones.
@@ -100,16 +110,12 @@ str = mapM char
 
 -- |  Defines combinators that can be used to build more avanced parsers.
 
-{- |  Tries a list of parsers one by one and returns the value with the
-first one that succeeds.
+{- | Try a list of parsers one by one and return the value of the
+first parser that succeeds.
 -}
 oneOf :: [Parser a] -> Parser a
-oneOf [] = empty -- no parsers always fail
+oneOf [] = empty -- fail if the list of parsers is empty
 oneOf parsers = foldr1 (<|>) parsers
-
--- | Parse a sequence of monoid values and combine them into one result.
-pconcat :: (Monoid a) => [Parser a] -> Parser a
-pconcat parsers = mconcat <$> sequence parsers
 
 -- | Lifts cons operator (:) into the world of parsers.
 (|:) :: Parser a -> Parser [a] -> Parser [a]
@@ -239,7 +245,7 @@ hex = match isHexDigit
 
 -- Parse a JSON number
 jsNumber :: Parser JsonValue
-jsNumber = JsNum . read <$> pconcat [integer, fraction, exponent]
+jsNumber = JsNum . read <$> mconcat [integer, fraction, exponent]
 
 -- Parse the integer part of a JSON number.
 integer :: Parser String
@@ -255,7 +261,7 @@ integer =
 fraction :: Parser String
 fraction =
     oneOf
-        [ pconcat [str ".", digits]
+        [ mconcat [str ".", digits]
         , pure ""
         ]
 
@@ -263,8 +269,8 @@ fraction =
 exponent :: Parser String
 exponent =
     oneOf
-        [ pconcat [str "E", sign, digits]
-        , pconcat [str "e", sign, digits]
+        [ mconcat [str "E", sign, digits]
+        , mconcat [str "e", sign, digits]
         , pure ""
         ]
 
