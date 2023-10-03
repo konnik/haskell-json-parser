@@ -279,7 +279,7 @@ digits = some digit
 
 -- Parse one digit 1..9
 onenine :: Parser Char
-onenine = match (\c -> '1' <= c && c <= '9')
+onenine = match (`elem` ['1' .. '9'])
 
 -- Parse optional sign
 sign :: Parser String
