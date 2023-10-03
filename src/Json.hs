@@ -1,5 +1,5 @@
-{- | This module contains an very simple implementation of a
-JSON parser.
+{- | This module contains a very simple implementation of a
+recursive descent style JSON parser.
 -}
 module Json (parse, JsonValue (..)) where
 
