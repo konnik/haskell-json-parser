@@ -1,4 +1,4 @@
-# Haskell JSON parser
+# Haskell JSON parser (from scratch)
 
 This is a very simple recursive decent parser for JSON I hacked together in Haskell in an afteroon just for the fun of it.
 
