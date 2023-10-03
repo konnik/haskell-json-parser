@@ -212,7 +212,7 @@ handle escaped characters correctly.
 character :: Parser Char
 character =
     oneOf
-        [ match (\c -> c /= '"' && c /= '\\')
+        [ match (not . (`elem` ['"', '\\']))
         , match (== '\\') *> escape
         ]
 
