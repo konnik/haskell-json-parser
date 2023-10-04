@@ -47,22 +47,27 @@ testBooleans :: TestTree
 testBooleans =
     testGroup
         "Booleans"
-        [ testCase "parse false" $ parse "false" @?= Just (JsBool False)
-        , testCase "parse true" $ parse "true" @?= Just (JsBool True)
+        [ testParse "  false  " False
+        , testParse "true" True
         ]
+  where
+    testParse input expectedValue = testCase ("parse '" ++ input ++ "'") $ parse input @?= Just (JsBool expectedValue)
 
 testNull :: TestTree
 testNull =
     testGroup
         "Null"
-        [ testCase "parse null" $ parse "null" @?= Just JsNull
+        [ testParse "null" JsNull
+        , testParse " null  " JsNull
         ]
+  where
+    testParse input expectedValue = testCase ("parse '" ++ input ++ "'") $ parse input @?= Just expectedValue
 
 testStrings :: TestTree
 testStrings =
     testGroup
         "String"
-        [ testParse "\"hello\"" "hello"
+        [ testParse "  \"hello\"  " "hello"
         , testParse "\"hello\\n\"" "hello\n"
         , testParse "\"hello\\t\"" "hello\t"
         , testParse "\"hello\\b\"" "hello\b"
@@ -81,7 +86,7 @@ testArrays :: TestTree
 testArrays =
     testGroup
         "Arrays"
-        [ testParse "[]" []
+        [ testParse "  [] " []
         , testParse "[    ]" []
         , testParse "[   null ,  null,null]" [JsNull, JsNull, JsNull]
         , testParse
@@ -95,14 +100,15 @@ testObjects :: TestTree
 testObjects =
     testGroup
         "Objects"
-        [ testParse "{}" M.empty
-        , testParse "{  \t}" M.empty
-        , testParse "{\"one\": false}" $ M.fromList [("one", JsBool False)]
-        , testParse "{\"one\": false, \"two\": 42}" $ M.fromList [("one", JsBool False), ("two", JsNum 42.0)]
-        , testParse "{\"one\": false, \"two\": 42, \"three\": null}" $ M.fromList [("one", JsBool False), ("two", JsNum 42.0), ("three", JsNull)]
-        , testParse "{\"str\": \"a string\"}" $ M.fromList [("str", JsStr "a string")]
-        , testParse "{\"arr\": [null, 42]}" $ M.fromList [("arr", JsArray [JsNull, JsNum 42.0])]
-        , testParse "{\"obj\": {\"inner\":42}}" $ M.fromList [("obj", JsObj (M.fromList [("inner", JsNum 42.0)]))]
+        [ testParse "  {}  " []
+        , testParse "{  \t}" []
+        , testParse "{   \"one\": false   }" [("one", JsBool False)]
+        , testParse "{\"one\": false, \"two\": 42}" [("one", JsBool False), ("two", JsNum 42.0)]
+        , testParse "{\"one\": false, \"two\": 42, \"three\": null}" [("one", JsBool False), ("two", JsNum 42.0), ("three", JsNull)]
+        , testParse "{\"str\": \"a string\"}" [("str", JsStr "a string")]
+        , testParse "{\"arr\": [null, 42]}" [("arr", JsArray [JsNull, JsNum 42.0])]
+        , testParse "{\"obj\": {\"inner\":42}}" [("obj", JsObj (M.fromList [("inner", JsNum 42.0)]))]
+        , testParse "{\"duplicate\": false, \"duplicate\": true}" [("duplicate", JsBool True)]
         ]
   where
-    testParse input expectedMap = testCase ("parse '" ++ input ++ "'") $ parse input @?= Just (JsObj expectedMap)
+    testParse input expectedMap = testCase ("parse '" ++ input ++ "'") $ parse input @?= Just (JsObj $ M.fromList expectedMap)
