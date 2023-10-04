@@ -9,7 +9,7 @@ import Data.Char (chr, isHexDigit)
 import Data.Functor (($>), (<&>))
 import Data.List (singleton, uncons)
 import Data.Map (Map)
-import Data.Map qualified as M (empty, fromList)
+import Data.Map qualified as M (fromList)
 import Data.Tuple (swap)
 import Prelude hiding (exponent, null)
 
@@ -122,13 +122,17 @@ oneOf parsers = foldr1 (<|>) parsers
 
 infixr 5 |:
 
--- | Parse a list of one or more values separated by another parser.
-sepBy :: Parser a -> Parser b -> Parser [a]
-sepBy elemP sepP =
+-- | Parse a list of one or more values delimited by a specific character.
+delimitedBy :: Parser a -> Char -> Parser [a]
+delimitedBy elemP delimiter =
     oneOf
-        [ elemP |: many (sepP *> elemP)
+        [ elemP |: many (char delimiter *> elemP)
         , singleton <$> elemP
         ]
+
+-- |  Parse a value that is surrounded by the specific characters.
+surroundedBy :: Char -> Parser a -> Char -> Parser a
+surroundedBy left parser right = char left *> parser <* char right
 
 -- * JSON Parsers
 
@@ -160,51 +164,49 @@ value =
 -- |  Parse a JSON object
 object :: Parser (Map String JsonValue)
 object =
-    oneOf
-        [ M.empty <$ (char '{' >> ws >> char '}')
-        , M.fromList <$> (char '{' *> members <* char '}')
-        ]
+    M.fromList
+        <$> oneOf
+            [ surroundedBy '{' ws '}' $> []
+            , surroundedBy '{' members '}'
+            ]
 
 -- |  Parse one or more key-value pairs separated by a comma (,).
 members :: Parser [(String, JsonValue)]
-members = member `sepBy` char ','
+members = member `delimitedBy` ','
 
 {- |  Parse a single key-value pair where the key and the value is separated
   by a colon (:).
 -}
 member :: Parser (String, JsonValue)
-member = liftA2 (,) (ws *> string <* ws <* char ':') element
+member = (,) <$> key <*> element
+  where
+    key = ws *> string <* ws <* char ':'
 
 -- |  Parse a JSON array
 array :: Parser [JsonValue]
 array =
     oneOf
-        [ (char '[' >> ws >> char ']') $> []
-        , char '[' *> elements <* char ']'
+        [ surroundedBy '[' ws ']' $> []
+        , surroundedBy '[' elements ']'
         ]
 
 -- |  Parse one or more array elements separated by a comma (,).
 elements :: Parser [JsonValue]
-elements = element `sepBy` char ','
+elements = element `delimitedBy` ','
 
 {- |  Parse an 'element', that is a JSON value that can be surrounded
  by whitespaces.
 -}
 element :: Parser JsonValue
-element =
-    ws *> value <* ws
+element = ws *> value <* ws
 
 -- | Parse a JSON string
 string :: Parser String
-string = char '"' *> characters <* char '"'
+string = surroundedBy '"' characters '"'
 
 -- |  Parse zero or more characters inside a JSON string.
 characters :: Parser String
-characters =
-    oneOf
-        [ character |: characters
-        , mempty
-        ]
+characters = many character
 
 {- |  Parse one character inside a JSON string and
 handle escaped characters correctly.
@@ -212,8 +214,8 @@ handle escaped characters correctly.
 character :: Parser Char
 character =
     oneOf
-        [ match (not . (`elem` ['"', '\\']))
-        , match (== '\\') *> escape
+        [ match (`notElem` ['"', '\\'])
+        , char '\\' >> escape
         ]
 
 -- | Parse one escaped character.
@@ -228,21 +230,21 @@ escape =
         , char 'n' $> '\n'
         , char 'r' $> '\r'
         , char 't' $> '\t'
-        , char 'u' *> (hexToChar <$> sequence [hex, hex, hex, hex])
+        , char 'u' >> sequence [hex, hex, hex, hex] <&> hexToChar
         ]
   where
     hexToChar :: String -> Char
     hexToChar hexStr = chr $ read ('0' : 'x' : hexStr)
 
--- Parse one hex digit.
+-- |  Parse one hex digit.
 hex :: Parser Char
 hex = match isHexDigit
 
--- Parse a JSON number
+-- |  Parse a JSON number
 number :: Parser Double
 number = read <$> mconcat [integer, fraction, exponent]
 
--- Parse the integer part of a JSON number.
+-- |  Parse the integer part of a JSON number.
 integer :: Parser String
 integer =
     oneOf
@@ -252,15 +254,17 @@ integer =
         , digit |: pure []
         ]
 
--- Parse the fraction part of a JSON number. The fraction can be bank.
+-- |  Parse the fraction part of a JSON number. The fraction can be bank.
 fraction :: Parser String
 fraction =
     oneOf
-        [ mconcat [str ".", digits]
+        [ char '.' |: digits
         , mempty
         ]
 
--- Parse the exponent part of a JSON number. The exponent can be bank.
+{- |  Parse the optional exponent part of a JSON number.
+If no exponent can be parsed the empty string is returned.
+-}
 exponent :: Parser String
 exponent =
     oneOf
@@ -269,19 +273,19 @@ exponent =
         , mempty
         ]
 
--- Parse one digit 0 .. 9
+-- |  Parse one digit 0..9
 digit :: Parser Char
 digit = char '0' <|> onenine
 
--- Parse one or more digits
-digits :: Parser String
-digits = some digit
-
--- Parse one digit 1..9
+-- |  Parse one digit 1..9
 onenine :: Parser Char
 onenine = match (`elem` ['1' .. '9'])
 
--- Parse optional sign
+-- |  Parse one or more digits
+digits :: Parser String
+digits = some digit
+
+-- |  Parse optional sign
 sign :: Parser String
 sign =
     oneOf
@@ -290,18 +294,18 @@ sign =
         , pure ""
         ]
 
--- Parse zero or more whitespace characters
+-- | Parse zero or more whitespace characters
 ws :: Parser ()
 ws = void $ many $ match (`elem` ['\x0020', '\x000A', '\x000D', '\x0009'])
 
--- Parse JSON true
+-- | Parse JSON true
 true :: Parser Bool
 true = str "true" $> True
 
--- Parse JSON false
+-- | Parse JSON false
 false :: Parser Bool
 false = str "false" $> False
 
--- Parse JSON null
+-- | Parse JSON null
 null :: Parser ()
 null = str "null" $> ()
