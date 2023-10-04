@@ -8,7 +8,9 @@ I have not made any attempt to make this parser perform well, as a matter of fac
 
 And as you can tell the error reporting can be improved a lot. Right now you don't get any information on why a parse failed. 
 
-This is the third JSON parser I've coded (the others where made in Kotlin and Clojure) and
-this one was by far the most fun to do. Haskell really is a beautiful language.
+This is the third JSON parser I've implemented in a short time 
+(the others where made in [Kotlin](https://github.com/konnik/kotlin-json-parser/) 
+and [Clojure](https://github.com/konnik/clojure-json-parser/)) and
+this one was by far the most fun to do. Haskell really is a beautiful language!
 
 Happy parsing!!!
