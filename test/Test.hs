@@ -82,7 +82,8 @@ testArrays =
     testGroup
         "Arrays"
         [ testParse "[]" []
-        , testParse "[null,null,null]" [JsNull, JsNull, JsNull]
+        , testParse "[    ]" []
+        , testParse "[   null ,  null,null]" [JsNull, JsNull, JsNull]
         , testParse
             "[\"hello\", false, true, null, 3.1415, [42]]"
             [JsStr "hello", JsBool False, JsBool True, JsNull, JsNum 3.1415, JsArray [JsNum 42]]

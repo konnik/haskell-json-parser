@@ -3,11 +3,11 @@ recursive descent style JSON parser.
 -}
 module Json (parse, JsonValue (..)) where
 
-import Control.Applicative (Alternative (..))
+import Control.Applicative (Alternative (..), optional)
 import Control.Monad (guard, void)
 import Data.Char (chr, isHexDigit)
 import Data.Functor (($>), (<&>))
-import Data.List (singleton, uncons)
+import Data.List (uncons)
 import Data.Map (Map)
 import Data.Map qualified as M (fromList)
 import Data.Tuple (swap)
@@ -122,12 +122,12 @@ oneOf parsers = foldr1 (<|>) parsers
 
 infixr 5 |:
 
--- | Parse a list of one or more values delimited by a specific character.
+-- | Parse a list of zero or more values delimited by a specific character.
 delimitedBy :: Parser a -> Char -> Parser [a]
 delimitedBy elemP delimiter =
     oneOf
         [ elemP |: many (char delimiter *> elemP)
-        , singleton <$> elemP
+        , mempty
         ]
 
 -- |  Parse a value that is surrounded by the specific characters.
@@ -163,16 +163,11 @@ value =
 
 -- |  Parse a JSON object
 object :: Parser (Map String JsonValue)
-object =
-    M.fromList
-        <$> oneOf
-            [ surroundedBy '{' ws '}' $> []
-            , surroundedBy '{' members '}'
-            ]
+object = M.fromList <$> surroundedBy '{' members '}'
 
 -- |  Parse one or more key-value pairs separated by a comma (,).
 members :: Parser [(String, JsonValue)]
-members = member `delimitedBy` ','
+members = optional ws >> member `delimitedBy` ','
 
 {- |  Parse a single key-value pair where the key and the value is separated
   by a colon (:).
@@ -184,15 +179,11 @@ member = (,) <$> key <*> element
 
 -- |  Parse a JSON array
 array :: Parser [JsonValue]
-array =
-    oneOf
-        [ surroundedBy '[' ws ']' $> []
-        , surroundedBy '[' elements ']'
-        ]
+array = surroundedBy '[' elements ']'
 
 -- |  Parse one or more array elements separated by a comma (,).
 elements :: Parser [JsonValue]
-elements = element `delimitedBy` ','
+elements = optional ws >> element `delimitedBy` ','
 
 {- |  Parse an 'element', that is a JSON value that can be surrounded
  by whitespaces.
