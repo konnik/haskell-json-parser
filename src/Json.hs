@@ -46,7 +46,7 @@ newtype Parser a = Parser {runParser :: String -> Maybe (String, a)}
 instance Functor Parser where
     fmap f pa = Parser $ fmap (fmap f) . runParser pa
 
-{- | Why not go applicative while we're at it? This allows us to
+{- | Why not go applicative while we're at it? This allowhitespace us to
 combine parsers applicative style. Cool stuff!
 -}
 instance Applicative Parser where
@@ -167,7 +167,7 @@ object = M.fromList <$> surroundedBy '{' members '}'
 
 -- |  Parse one or more key-value pairs separated by a comma (,).
 members :: Parser [(String, JsonValue)]
-members = optional ws >> member `delimitedBy` ','
+members = optional whitespace >> member `delimitedBy` ','
 
 {- |  Parse a single key-value pair where the key and the value is separated
   by a colon (:).
@@ -175,7 +175,7 @@ members = optional ws >> member `delimitedBy` ','
 member :: Parser (String, JsonValue)
 member = (,) <$> key <*> element
   where
-    key = ws *> string <* ws <* char ':'
+    key = whitespace *> string <* whitespace <* char ':'
 
 -- |  Parse a JSON array
 array :: Parser [JsonValue]
@@ -183,13 +183,13 @@ array = surroundedBy '[' elements ']'
 
 -- |  Parse one or more array elements separated by a comma (,).
 elements :: Parser [JsonValue]
-elements = optional ws >> element `delimitedBy` ','
+elements = optional whitespace >> element `delimitedBy` ','
 
 {- |  Parse an 'element', that is a JSON value that can be surrounded
  by whitespaces.
 -}
 element :: Parser JsonValue
-element = ws *> value <* ws
+element = whitespace *> value <* whitespace
 
 -- | Parse a JSON string
 string :: Parser String
@@ -286,8 +286,8 @@ sign =
         ]
 
 -- | Parse zero or more whitespace characters
-ws :: Parser ()
-ws = void $ many $ match (`elem` ['\x0020', '\x000A', '\x000D', '\x0009'])
+whitespace :: Parser ()
+whitespace = void $ many $ match (`elem` ['\x0020', '\x000A', '\x000D', '\x0009'])
 
 -- | Parse JSON true
 true :: Parser Bool
