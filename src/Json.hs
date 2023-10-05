@@ -11,7 +11,7 @@ import Data.List (uncons)
 import Data.Map (Map)
 import Data.Map qualified as M (fromList)
 import Data.Tuple (swap)
-import Prelude hiding (exponent, null)
+import Prelude hiding (exponent, null) -- clashes with names from the JSON grammar
 
 -- * Public API
 
