@@ -3,7 +3,7 @@ recursive descent style JSON parser.
 -}
 module Json (parse, JsonValue (..)) where
 
-import Control.Applicative (Alternative (..), optional)
+import Control.Applicative (Alternative (..), asum, optional)
 import Control.Monad (guard, void)
 import Data.Char (chr, isHexDigit)
 import Data.Functor (($>), (<&>))
@@ -113,8 +113,7 @@ str = mapM char
 first parser that succeeds.
 -}
 oneOf :: [Parser a] -> Parser a
-oneOf [] = empty -- fail if the list of parsers is empty
-oneOf parsers = foldr1 (<|>) parsers
+oneOf = asum
 
 -- | Lifts cons operator (:) into the world of parsers.
 (|:) :: Parser a -> Parser [a] -> Parser [a]
