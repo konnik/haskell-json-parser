@@ -26,7 +26,7 @@ decodeValue = runDecoder
 double :: Decoder Double
 double = Decoder $ \case
     JsNum n -> Right n
-    other -> Left $ mconcat [toStr other, " is not a number"]
+    other -> Left $ mconcat [toStr other, " is not a double"]
 
 toStr :: JsonValue -> String
 toStr = \case
