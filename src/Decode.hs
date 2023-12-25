@@ -3,6 +3,7 @@
 module Decode (
     Decoder,
     double,
+    int,
     decodeValue,
     decodeJson,
 ) where
@@ -27,6 +28,17 @@ double :: Decoder Double
 double = Decoder $ \case
     JsNum n -> Right n
     other -> Left $ mconcat [toStr other, " is not a double"]
+
+int :: Decoder Int
+int = Decoder $ \case
+    JsNum n ->
+        if isInteger n
+            then Right $ round n
+            else Left $ mconcat [show n, " is not an integer"]
+    other -> Left $ mconcat [toStr other, " is not an integer"]
+  where
+    isInteger :: Double -> Bool
+    isInteger y = y == fromInteger (round y)
 
 toStr :: JsonValue -> String
 toStr = \case
