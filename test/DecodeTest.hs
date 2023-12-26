@@ -11,6 +11,7 @@ test =
         "Decoder tests"
         [ decodeDouble
         , decodeInt
+        , decodeBool
         ]
 
 decodeDouble :: TestTree
@@ -31,4 +32,13 @@ decodeInt =
         , testCase "42.0" $ decodeJson int "42.0" @?= Right 42
         , testCase "3.14" $ decodeJson int "3.14" @?= Left "3.14 is not an integer"
         , testCase "true" $ decodeJson int "true" @?= Left "true is not an integer"
+        ]
+
+decodeBool :: TestTree
+decodeBool =
+    testGroup
+        "bool"
+        [ testCase "true" $ decodeJson bool "true" @?= Right True
+        , testCase "false" $ decodeJson bool "false" @?= Right False
+        , testCase "3.14" $ decodeJson bool "3.14" @?= Left "3.14 is not a boolean"
         ]

@@ -4,11 +4,12 @@ module Decode (
     Decoder,
     double,
     int,
+    bool,
     decodeValue,
     decodeJson,
 ) where
 
-import Data.Bool (bool)
+import Data.Bool qualified as Bool
 import Data.List (intersperse)
 import Data.Map.Strict (toList)
 import Json (JsonValue (..))
@@ -40,11 +41,16 @@ int = Decoder $ \case
     isInteger :: Double -> Bool
     isInteger y = y == fromInteger (round y)
 
+bool :: Decoder Bool
+bool = Decoder $ \case
+    JsBool b -> Right b
+    other -> Left $ mconcat [toStr other, " is not a boolean"]
+
 toStr :: JsonValue -> String
 toStr = \case
     JsNum n -> show n
     JsNull -> "null"
-    JsBool p -> bool "false" "true" p
+    JsBool p -> Bool.bool "false" "true" p
     JsStr str -> mconcat ["\"", str, "\""]
     JsArray items -> mjoin "[" "," "]" $ fmap toStr items
     JsObj members -> mjoin "{" "," "}" $ fmap memberS (toList members)
