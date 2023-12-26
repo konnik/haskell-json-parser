@@ -12,6 +12,7 @@ module Decode (
     field,
 ) where
 
+import Control.Applicative (Alternative, empty, (<|>))
 import Data.Bool qualified as Bool
 import Data.List (intersperse)
 import Data.Map.Strict qualified as M (lookup, toList)
@@ -19,6 +20,29 @@ import Json (JsonValue (..))
 import Json qualified
 
 newtype Decoder a = Decoder {runDecoder :: JsonValue -> Either String a}
+
+instance Functor Decoder where
+    fmap f fa = Decoder (fmap f . runDecoder fa)
+
+instance Applicative Decoder where
+    pure v = Decoder $ \_ -> Right v
+    (<*>) :: Decoder (a -> b) -> Decoder a -> Decoder b
+    fab <*> fa = fab >>= flip fmap fa
+
+instance Monad Decoder where
+    ma >>= f = Decoder $ \jsValue ->
+        case runDecoder ma jsValue of
+            Right a -> runDecoder (f a) jsValue
+            Left errStr -> Left errStr
+
+instance Alternative Decoder where
+    empty :: Decoder a
+    empty = Decoder $ \_ -> Left "Decoding failed."
+    (<|>) :: Decoder a -> Decoder a -> Decoder a
+    fa <|> fb = Decoder $ \jsValue ->
+        case runDecoder fa jsValue of
+            Left _ -> runDecoder fb jsValue
+            Right x -> Right x
 
 decodeJson :: Decoder a -> String -> Either String a
 decodeJson decoder json = case Json.parse json of
