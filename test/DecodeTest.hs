@@ -13,6 +13,7 @@ test =
         , decodeInt
         , decodeBool
         , decodeString
+        , decodeList
         ]
 
 decodeDouble :: TestTree
@@ -50,4 +51,14 @@ decodeString =
         "string"
         [ testCase "\"hello\"" $ decodeJson string "\"hello\"" @?= Right "hello"
         , testCase "3.14" $ decodeJson string "3.14" @?= Left "3.14 is not a string"
+        ]
+
+decodeList :: TestTree
+decodeList =
+    testGroup
+        "list"
+        [ testCase "[1,2,3]" $ decodeJson (list int) "[1,2,3]" @?= Right [1, 2, 3]
+        , testCase "[]" $ decodeJson (list int) "[]" @?= Right []
+        , testCase "[true,false]" $ decodeJson (list int) "[true,false]" @?= Left "true is not an integer"
+        , testCase "42" $ decodeJson (list int) "42" @?= Left "42.0 is not an array"
         ]

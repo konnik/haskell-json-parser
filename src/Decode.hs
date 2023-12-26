@@ -8,6 +8,7 @@ module Decode (
     decodeValue,
     decodeJson,
     string,
+    list,
 ) where
 
 import Data.Bool qualified as Bool
@@ -51,6 +52,11 @@ string :: Decoder String
 string = Decoder $ \case
     JsStr str -> Right str
     other -> Left $ mconcat [toStr other, " is not a string"]
+
+list :: Decoder a -> Decoder [a]
+list itemDecoder = Decoder $ \case
+    JsArray arr -> mapM (decodeValue itemDecoder) arr
+    other -> Left $ mconcat [toStr other, " is not an array"]
 
 toStr :: JsonValue -> String
 toStr = \case
