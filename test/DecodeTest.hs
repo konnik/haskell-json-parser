@@ -14,6 +14,7 @@ test =
         , decodeBool
         , decodeString
         , decodeList
+        , decodeField
         ]
 
 decodeDouble :: TestTree
@@ -61,4 +62,13 @@ decodeList =
         , testCase "[]" $ decodeJson (list int) "[]" @?= Right []
         , testCase "[true,false]" $ decodeJson (list int) "[true,false]" @?= Left "true is not an integer"
         , testCase "42" $ decodeJson (list int) "42" @?= Left "42.0 is not an array"
+        ]
+
+decodeField :: TestTree
+decodeField =
+    testGroup
+        "field"
+        [ testCase "existing boolean field" $ decodeJson (field "a" bool) "{\"a\":true}" @?= Right True
+        , testCase "missing field" $ decodeJson (field "b" bool) "{\"a\":true}" @?= Left "missing field 'b'"
+        , testCase "not an object" $ decodeJson (field "b" bool) "true" @?= Left "true is not an object"
         ]

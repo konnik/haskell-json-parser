@@ -9,11 +9,12 @@ module Decode (
     decodeJson,
     string,
     list,
+    field,
 ) where
 
 import Data.Bool qualified as Bool
 import Data.List (intersperse)
-import Data.Map.Strict (toList)
+import Data.Map.Strict qualified as M (lookup, member, toList)
 import Json (JsonValue (..))
 import Json qualified
 
@@ -58,6 +59,14 @@ list itemDecoder = Decoder $ \case
     JsArray arr -> mapM (decodeValue itemDecoder) arr
     other -> Left $ mconcat [toStr other, " is not an array"]
 
+field :: String -> Decoder a -> Decoder a
+field fieldName decoder = Decoder $ \case
+    JsObj members ->
+        case M.lookup fieldName members of
+            Just value -> decodeValue decoder value
+            Nothing -> Left $ mconcat ["missing field '", fieldName, "'"]
+    other -> Left $ mconcat [toStr other, " is not an object"]
+
 toStr :: JsonValue -> String
 toStr = \case
     JsNum n -> show n
@@ -65,10 +74,10 @@ toStr = \case
     JsBool p -> Bool.bool "false" "true" p
     JsStr str -> mconcat ["\"", str, "\""]
     JsArray items -> mjoin "[" "," "]" $ fmap toStr items
-    JsObj members -> mjoin "{" "," "}" $ fmap memberS (toList members)
+    JsObj members -> mjoin "{" "," "}" $ fmap memberStr (M.toList members)
   where
-    memberS :: (String, JsonValue) -> String
-    memberS (key, value) = mconcat ["\"", key, "\":", toStr value]
+    memberStr :: (String, JsonValue) -> String
+    memberStr (key, value) = mconcat ["\"", key, "\":", toStr value]
 
 mjoin :: (Monoid a) => a -> a -> a -> [a] -> a
 mjoin prefix separator postfix items = mconcat $ [prefix] ++ intersperse separator items ++ [postfix]
