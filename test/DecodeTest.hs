@@ -12,6 +12,7 @@ test =
         [ decodeDouble
         , decodeInt
         , decodeBool
+        , decodeString
         ]
 
 decodeDouble :: TestTree
@@ -41,4 +42,12 @@ decodeBool =
         [ testCase "true" $ decodeJson bool "true" @?= Right True
         , testCase "false" $ decodeJson bool "false" @?= Right False
         , testCase "3.14" $ decodeJson bool "3.14" @?= Left "3.14 is not a boolean"
+        ]
+
+decodeString :: TestTree
+decodeString =
+    testGroup
+        "string"
+        [ testCase "\"hello\"" $ decodeJson string "\"hello\"" @?= Right "hello"
+        , testCase "3.14" $ decodeJson string "3.14" @?= Left "3.14 is not a string"
         ]

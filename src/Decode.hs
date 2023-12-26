@@ -7,6 +7,7 @@ module Decode (
     bool,
     decodeValue,
     decodeJson,
+    string,
 ) where
 
 import Data.Bool qualified as Bool
@@ -45,6 +46,11 @@ bool :: Decoder Bool
 bool = Decoder $ \case
     JsBool b -> Right b
     other -> Left $ mconcat [toStr other, " is not a boolean"]
+
+string :: Decoder String
+string = Decoder $ \case
+    JsStr str -> Right str
+    other -> Left $ mconcat [toStr other, " is not a string"]
 
 toStr :: JsonValue -> String
 toStr = \case
