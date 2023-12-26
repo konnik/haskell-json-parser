@@ -14,7 +14,7 @@ module Decode (
 
 import Data.Bool qualified as Bool
 import Data.List (intersperse)
-import Data.Map.Strict qualified as M (lookup, member, toList)
+import Data.Map.Strict qualified as M (lookup, toList)
 import Json (JsonValue (..))
 import Json qualified
 
