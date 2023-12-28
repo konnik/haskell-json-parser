@@ -3,8 +3,9 @@ module DecodeTest (test) where
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (testCase, (@?=))
 
-import Decode (at, bool, decodeJson, double, field, index, int, list, string, value)
+import Decode
 import Json (JsonValue (JsStr))
+import Prelude hiding (fail)
 
 test :: TestTree
 test =
@@ -19,6 +20,9 @@ test =
         , decodeJsValue
         , decodeIndex
         , decodeAt
+        , decodeSucceed
+        , decodeFail
+        , decodeOneOf
         ]
 
 decodeDouble :: TestTree
@@ -104,3 +108,29 @@ decodeAt =
         ]
   where
     json = "{\"a\":{\"b\":{\"c\":3.14}}}"
+
+decodeSucceed :: TestTree
+decodeSucceed =
+    testGroup
+        "succeed"
+        [ testCase "succeed with int" $ decodeJson (succeed (42 :: Int)) "null" @?= Right 42
+        , testCase "succeed with bool" $ decodeJson (succeed True) "null" @?= Right True
+        , testCase "succeed with string" $ decodeJson (succeed "ok") "null" @?= Right "ok"
+        ]
+
+decodeFail :: TestTree
+decodeFail =
+    testGroup
+        "fail"
+        [ testCase "fails with message" $ decodeJson (fail "decode failed" :: Decoder Int) "null" @?= Left "decode failed"
+        ]
+
+decodeOneOf :: TestTree
+decodeOneOf =
+    testGroup
+        "oneOf"
+        [ testCase "first succeeds" $ decodeJson (oneOf [succeed "one", fail "two"]) "null" @?= Right "one"
+        , testCase "second succeeds" $ decodeJson (oneOf [fail "one", succeed "two"]) "null" @?= Right "two"
+        , testCase "none succeeds" $ decodeJson (oneOf [fail "one", fail "two"] :: Decoder Int) "null" @?= Left "all oneOf decoders failed"
+        , testCase "empty decoder list" $ decodeJson (oneOf [] :: Decoder Int) "null" @?= Left "all oneOf decoders failed"
+        ]

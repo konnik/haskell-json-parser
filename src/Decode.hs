@@ -13,14 +13,18 @@ module Decode (
     field,
     index,
     at,
+    succeed,
+    fail,
+    oneOf,
 ) where
 
 import Control.Applicative (Alternative, empty, (<|>))
 import Data.Bool qualified as Bool
-import Data.List (intersperse)
+import Data.List (foldl1', intersperse)
 import Data.Map.Strict qualified as M (lookup, toList)
 import Json (JsonValue (..))
 import Json qualified
+import Prelude hiding (fail)
 
 newtype Decoder a = Decoder {runDecoder :: JsonValue -> Either String a}
 
@@ -111,6 +115,15 @@ at [] decoder = decoder
 at (x : xs) decoder = Decoder $ \jsValue -> do
     subValue <- runDecoder (field x value) jsValue
     runDecoder (at xs decoder) subValue
+
+succeed :: a -> Decoder a
+succeed = pure
+
+fail :: String -> Decoder a
+fail msg = Decoder $ const (Left msg)
+
+oneOf :: [Decoder a] -> Decoder a
+oneOf decoders = foldl1' (<|>) $ decoders ++ [fail "all oneOf decoders failed"]
 
 toStr :: JsonValue -> String
 toStr = \case
