@@ -10,6 +10,7 @@ module Decode (
     string,
     list,
     field,
+    index,
 ) where
 
 import Control.Applicative (Alternative, empty, (<|>))
@@ -90,6 +91,15 @@ field fieldName decoder = Decoder $ \case
             Just value -> decodeValue decoder value
             Nothing -> Left $ mconcat ["missing field '", fieldName, "'"]
     other -> Left $ mconcat [toStr other, " is not an object"]
+
+index :: Int -> Decoder a -> Decoder a
+index i decoder = Decoder $ \case
+    JsArray elements ->
+        if i >= 0 && i < length elements
+            then runDecoder decoder (elements !! i)
+            else Left $ show i ++ " is not a valid index in array"
+    other ->
+        Left $ mconcat [toStr other, " is not an array"]
 
 toStr :: JsonValue -> String
 toStr = \case

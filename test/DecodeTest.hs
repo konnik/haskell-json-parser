@@ -15,6 +15,7 @@ test =
         , decodeString
         , decodeList
         , decodeField
+        , decodeIndex
         ]
 
 decodeDouble :: TestTree
@@ -71,4 +72,14 @@ decodeField =
         [ testCase "existing boolean field" $ decodeJson (field "a" bool) "{\"a\":true}" @?= Right True
         , testCase "missing field" $ decodeJson (field "b" bool) "{\"a\":true}" @?= Left "missing field 'b'"
         , testCase "not an object" $ decodeJson (field "b" bool) "true" @?= Left "true is not an object"
+        ]
+
+decodeIndex :: TestTree
+decodeIndex =
+    testGroup
+        "index"
+        [ testCase "existing element" $ decodeJson (index 1 bool) "[null,true,1]" @?= Right True
+        , testCase "non existing element" $ decodeJson (index 3 bool) "[null,true,1]" @?= Left "3 is not a valid index in array"
+        , testCase "invalid type at index" $ decodeJson (index 1 int) "[null,true,1]" @?= Left "true is not an integer"
+        , testCase "not an array" $ decodeJson (index 2 int) "true" @?= Left "true is not an array"
         ]
