@@ -3,7 +3,8 @@ module DecodeTest (test) where
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (testCase, (@?=))
 
-import Decode
+import Decode (at, bool, decodeJson, double, field, index, int, list, string, value)
+import Json (JsonValue (JsStr))
 
 test :: TestTree
 test =
@@ -15,7 +16,9 @@ test =
         , decodeString
         , decodeList
         , decodeField
+        , decodeJsValue
         , decodeIndex
+        , decodeAt
         ]
 
 decodeDouble :: TestTree
@@ -74,6 +77,13 @@ decodeField =
         , testCase "not an object" $ decodeJson (field "b" bool) "true" @?= Left "true is not an object"
         ]
 
+decodeJsValue :: TestTree
+decodeJsValue =
+    testGroup
+        "value"
+        [ testCase "\"hello\"" $ decodeJson value "\"hello\"" @?= Right (JsStr "hello")
+        ]
+
 decodeIndex :: TestTree
 decodeIndex =
     testGroup
@@ -83,3 +93,14 @@ decodeIndex =
         , testCase "invalid type at index" $ decodeJson (index 1 int) "[null,true,1]" @?= Left "true is not an integer"
         , testCase "not an array" $ decodeJson (index 2 int) "true" @?= Left "true is not an array"
         ]
+
+decodeAt :: TestTree
+decodeAt =
+    testGroup
+        "at"
+        [ testCase "existing path" $ decodeJson (at ["a", "b", "c"] double) json @?= Right 3.14
+        , testCase "invalid path path" $ decodeJson (at ["a", "x", "c"] double) json @?= Left "missing field 'x'"
+        , testCase "decoding fails" $ decodeJson (at ["a", "b", "c"] bool) json @?= Left "3.14 is not a boolean"
+        ]
+  where
+    json = "{\"a\":{\"b\":{\"c\":3.14}}}"

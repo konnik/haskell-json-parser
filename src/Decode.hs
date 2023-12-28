@@ -9,8 +9,10 @@ module Decode (
     decodeJson,
     string,
     list,
+    value,
     field,
     index,
+    at,
 ) where
 
 import Control.Applicative (Alternative, empty, (<|>))
@@ -47,7 +49,7 @@ instance Alternative Decoder where
 
 decodeJson :: Decoder a -> String -> Either String a
 decodeJson decoder json = case Json.parse json of
-    Just value -> decodeValue decoder value
+    Just v -> decodeValue decoder v
     Nothing -> Left "invalid json"
 
 decodeValue :: Decoder a -> JsonValue -> Either String a
@@ -88,7 +90,7 @@ field :: String -> Decoder a -> Decoder a
 field fieldName decoder = Decoder $ \case
     JsObj members ->
         case M.lookup fieldName members of
-            Just value -> decodeValue decoder value
+            Just v -> decodeValue decoder v
             Nothing -> Left $ mconcat ["missing field '", fieldName, "'"]
     other -> Left $ mconcat [toStr other, " is not an object"]
 
@@ -101,6 +103,15 @@ index i decoder = Decoder $ \case
     other ->
         Left $ mconcat [toStr other, " is not an array"]
 
+value :: Decoder JsonValue
+value = Decoder Right
+
+at :: [String] -> Decoder a -> Decoder a
+at [] decoder = decoder
+at (x : xs) decoder = Decoder $ \jsValue -> do
+    subValue <- runDecoder (field x value) jsValue
+    runDecoder (at xs decoder) subValue
+
 toStr :: JsonValue -> String
 toStr = \case
     JsNum n -> show n
@@ -111,7 +122,7 @@ toStr = \case
     JsObj members -> mjoin "{" "," "}" $ fmap memberStr (M.toList members)
   where
     memberStr :: (String, JsonValue) -> String
-    memberStr (key, value) = mconcat ["\"", key, "\":", toStr value]
+    memberStr (key, val) = mconcat ["\"", key, "\":", toStr val]
 
 mjoin :: (Monoid a) => a -> a -> a -> [a] -> a
 mjoin prefix separator postfix items = mconcat $ [prefix] ++ intersperse separator items ++ [postfix]
