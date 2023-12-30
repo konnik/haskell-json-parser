@@ -17,6 +17,7 @@ module Decode (
     fail,
     oneOf,
     optionalField,
+    nullable,
 ) where
 
 import Control.Applicative (Alternative, empty, (<|>))
@@ -124,6 +125,11 @@ at [] decoder = decoder
 at (x : xs) decoder = Decoder $ \jsValue -> do
     subValue <- runDecoder (field x value) jsValue
     runDecoder (at xs decoder) subValue
+
+nullable :: Decoder a -> Decoder (Maybe a)
+nullable decoder = Decoder $ \case
+    JsNull -> Right Nothing
+    other -> runDecoder (Just <$> decoder) other
 
 succeed :: a -> Decoder a
 succeed = pure

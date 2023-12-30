@@ -20,6 +20,7 @@ test =
         , decodeJsValue
         , decodeIndex
         , decodeAt
+        , decodeNullable
         , decodeSucceed
         , decodeFail
         , decodeOneOf
@@ -109,6 +110,15 @@ decodeAt =
         ]
   where
     json = "{\"a\":{\"b\":{\"c\":3.14}}}"
+
+decodeNullable :: TestTree
+decodeNullable =
+    testGroup
+        "nullable string"
+        [ testCase "\"hello\"" $ decodeJson (nullable string) "\"hello\"" @?= Right (Just "hello")
+        , testCase "null" $ decodeJson (nullable string) "null" @?= Right Nothing
+        , testCase "42" $ decodeJson (nullable string) "42" @?= Left "42.0 is not a string"
+        ]
 
 decodeSucceed :: TestTree
 decodeSucceed =
