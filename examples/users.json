@@ -1,0 +1,28 @@
+{
+    "users": [
+        {
+            "type": "guest",
+            "displayName": "Guest123"
+        },
+        {
+            "type": "registered",
+            "id": 1,
+            "alias": "jim",
+            "email": "jim@example.com",
+            "phone": null
+        },
+        {
+            "type": "registered",
+            "id": 2,
+            "alias": "sam",
+            "email": "sam@example.com",
+            "phone": "1234-4345"
+        },
+        {
+            "type": "registered",
+            "id": 3,
+            "alias": "pam",
+            "email": "pam@example.com"
+        }
+    ]
+}
