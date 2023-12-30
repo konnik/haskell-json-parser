@@ -16,6 +16,7 @@ module Decode (
     succeed,
     fail,
     oneOf,
+    optionalField,
 ) where
 
 import Control.Applicative (Alternative, empty, (<|>))
@@ -96,6 +97,14 @@ field fieldName decoder = Decoder $ \case
         case M.lookup fieldName members of
             Just v -> decodeValue decoder v
             Nothing -> Left $ mconcat ["missing field '", fieldName, "'"]
+    other -> Left $ mconcat [toStr other, " is not an object"]
+
+optionalField :: String -> Decoder a -> Decoder (Maybe a)
+optionalField fieldName decoder = Decoder $ \case
+    JsObj members ->
+        case M.lookup fieldName members of
+            Just v -> Just <$> decodeValue decoder v
+            Nothing -> Right Nothing
     other -> Left $ mconcat [toStr other, " is not an object"]
 
 index :: Int -> Decoder a -> Decoder a

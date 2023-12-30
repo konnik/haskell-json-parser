@@ -23,6 +23,7 @@ test =
         , decodeSucceed
         , decodeFail
         , decodeOneOf
+        , decodeOptionalField
         ]
 
 decodeDouble :: TestTree
@@ -133,4 +134,13 @@ decodeOneOf =
         , testCase "second succeeds" $ decodeJson (oneOf [fail "one", succeed "two"]) "null" @?= Right "two"
         , testCase "none succeeds" $ decodeJson (oneOf [fail "one", fail "two"] :: Decoder Int) "null" @?= Left "all oneOf decoders failed"
         , testCase "empty decoder list" $ decodeJson (oneOf [] :: Decoder Int) "null" @?= Left "all oneOf decoders failed"
+        ]
+
+decodeOptionalField :: TestTree
+decodeOptionalField =
+    testGroup
+        "optionalField"
+        [ testCase "existing boolean field" $ decodeJson (optionalField "a" bool) "{\"a\":true}" @?= Right (Just True)
+        , testCase "missing field" $ decodeJson (optionalField "a" bool) "{}" @?= Right Nothing
+        , testCase "not an object" $ decodeJson (optionalField "a" bool) "true" @?= Left "true is not an object"
         ]
