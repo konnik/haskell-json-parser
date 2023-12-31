@@ -25,6 +25,7 @@ test =
         , decodeFail
         , decodeOneOf
         , decodeOptionalField
+        , decodeValidatedBy
         ]
 
 decodeDouble :: TestTree
@@ -154,3 +155,16 @@ decodeOptionalField =
         , testCase "missing field" $ decodeJson (optionalField "a" bool) "{}" @?= Right Nothing
         , testCase "not an object" $ decodeJson (optionalField "a" bool) "true" @?= Left "true is not an object"
         ]
+
+decodeValidatedBy :: TestTree
+decodeValidatedBy =
+    testGroup
+        "validatedBy"
+        [ testCase "not valid string" $ decodeJson (string `validatedBy` notEmpty) "\"\"" @?= Left "string must not be empty"
+        , testCase "valid string" $ decodeJson (string `validatedBy` notEmpty) "\"monkey\"" @?= Right 6
+        ]
+  where
+    notEmpty :: String -> Either String Int
+    notEmpty str = case str of
+        [] -> Left "string must not be empty"
+        _ -> Right $ length str

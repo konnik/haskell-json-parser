@@ -18,6 +18,7 @@ module Decode (
     oneOf,
     optionalField,
     nullable,
+    validatedBy,
 ) where
 
 import Control.Applicative (Alternative, empty, (<|>))
@@ -139,6 +140,13 @@ fail msg = Decoder $ const (Left msg)
 
 oneOf :: [Decoder a] -> Decoder a
 oneOf decoders = foldl1' (<|>) $ decoders ++ [fail "all oneOf decoders failed"]
+
+validatedBy :: Decoder a -> (a -> Either String b) -> Decoder b
+validatedBy decoder f = do
+    a <- decoder
+    case f a of
+        Right b -> pure b
+        Left err -> fail err
 
 toStr :: JsonValue -> String
 toStr = \case
