@@ -16,7 +16,7 @@
             "id": 2,
             "alias": "sam",
             "email": "sam@example.com",
-            "phone": "1234-4345"
+            "phone": "+41-1234-4345"
         },
         {
             "type": "registered",
