@@ -19,6 +19,7 @@ module Decode (
     optionalField,
     nullable,
     validatedBy,
+    optionalNullableField,
 ) where
 
 import Control.Applicative (Alternative, empty, (<|>))
@@ -106,6 +107,14 @@ optionalField fieldName decoder = Decoder $ \case
     JsObj members ->
         case M.lookup fieldName members of
             Just v -> Just <$> decodeValue decoder v
+            Nothing -> Right Nothing
+    other -> Left $ mconcat [toStr other, " is not an object"]
+
+optionalNullableField :: String -> Decoder a -> Decoder (Maybe a)
+optionalNullableField fieldName decoder = Decoder $ \case
+    JsObj members ->
+        case M.lookup fieldName members of
+            Just v -> decodeValue (nullable decoder) v
             Nothing -> Right Nothing
     other -> Left $ mconcat [toStr other, " is not an object"]
 
