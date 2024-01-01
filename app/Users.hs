@@ -1,9 +1,8 @@
 module Users (loadUsers, User) where
 
-import Control.Monad (join)
 import System.Exit (exitFailure)
 
-import Decode (Decoder, decodeJson, field, int, list, nullable, optionalField, string, validatedBy)
+import Decode (Decoder, decodeJson, field, int, list, optionalNullableField, string, validatedBy)
 import Decode qualified as D
 
 loadUsers :: String -> IO [User]
@@ -26,7 +25,12 @@ data User
         { id :: UserId
         , alias :: Alias
         , email :: Email
-        , phone :: Maybe Phone
+        , phone :: Phone
+        }
+    | RegisteredWithoutPhone
+        { id :: UserId
+        , alias :: Alias
+        , email :: Email
         }
     deriving (Show)
 
@@ -50,18 +54,21 @@ guestDecoder :: Decoder User
 guestDecoder = Guest <$> field "displayName" string
 
 registeredDecoder :: Decoder User
-registeredDecoder =
-    Registered <$> userId <*> alias <*> email <*> phone
-  where
-    userId = UserId <$> field "id" int
-    alias = Alias <$> field "alias" string
-    email = Email <$> field "email" string
-    phone :: Decoder (Maybe Phone)
-    phone =
-        join
-            <$> optionalField
-                "phone"
-                (nullable (string `validatedBy` parsePhone))
+registeredDecoder = do
+    userId <- field "id" (int `validatedBy` parseId)
+    alias <- Alias <$> field "alias" string
+    email <- Email <$> field "email" string
+    phone <- optionalNullableField "phone" (string `validatedBy` parsePhone)
+    pure $ case phone of
+        Nothing ->
+            RegisteredWithoutPhone userId alias email
+        Just p ->
+            Registered userId alias email p
+
+parseId :: Int -> Either String UserId
+parseId n
+    | n > 0 = Right (UserId n)
+    | otherwise = Left "User id must be positive"
 
 parsePhone :: String -> Either String Phone
 parsePhone str =
